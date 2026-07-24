@@ -1,0 +1,762 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>Интерактивный опыт</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    html, body {
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background: #000;
+      font-family: 'Advaken Sans Expanded', 'Arial Black', sans-serif;
+      color: #fff;
+      user-select: none;
+    }
+
+    @font-face {
+      font-family: 'Advaken Sans Expanded';
+      src: url('advaken-sans-expanded.ttf') format('truetype');
+      font-weight: normal;
+      font-style: normal;
+      font-display: swap;
+    }
+
+    /* Главный экран */
+    #main-screen {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: radial-gradient(circle at center, #1a1a1a 0%, #000 100%);
+      z-index: 10;
+      transition: opacity 0.8s ease;
+    }
+
+    .buttons-row {
+      display: flex;
+      gap: 2rem;
+      flex-wrap: wrap;
+      justify-content: center;
+      align-items: center;
+    }
+
+    .main-btn {
+      background: rgba(255, 255, 255, 0.08);
+      backdrop-filter: blur(10px);
+      border: 2px solid rgba(255, 255, 255, 0.25);
+      color: #fff;
+      font-family: 'Advaken Sans Expanded', 'Arial', sans-serif;
+      font-size: 1.8rem;
+      font-weight: 600;
+      padding: 1.2rem 2.8rem;
+      border-radius: 60px;
+      cursor: pointer;
+      transition: all 0.25s ease;
+      letter-spacing: 0.05em;
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+      text-shadow: 0 0 15px rgba(255,255,255,0.3);
+      white-space: nowrap;
+      opacity: 0;
+      transform: scale(0.8);
+    }
+
+    .main-btn.visible {
+      animation: fadeInScale 0.6s ease forwards;
+    }
+
+    .main-btn:active:not(.disabled) {
+      transform: scale(0.95) !important;
+      background: rgba(255, 255, 255, 0.25);
+      border-color: rgba(255, 255, 255, 0.8);
+      box-shadow: 0 0 25px rgba(255, 255, 255, 0.4);
+      transition: all 0.1s ease;
+    }
+
+    .main-btn:hover:not(.disabled) {
+      background: rgba(255, 255, 255, 0.2);
+      border-color: rgba(255, 255, 255, 0.7);
+      box-shadow: 0 0 35px rgba(255, 255, 255, 0.25);
+      transform: scale(1.05);
+    }
+
+    .main-btn.disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+      filter: grayscale(0.8);
+      border-color: rgba(255,255,255,0.15);
+      pointer-events: none;
+      animation: none;
+    }
+
+    .main-btn .digit-big {
+      font-family: 'Advaken Sans Expanded', sans-serif;
+      font-size: 2.8rem;
+      font-weight: 700;
+      margin-right: 0.2rem;
+      line-height: 1;
+    }
+
+    @keyframes fadeInScale {
+      0% { opacity: 0; transform: scale(0.8); }
+      100% { opacity: 1; transform: scale(1); }
+    }
+
+    /* Видеоконтейнер */
+    #video-container {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: #000;
+      z-index: 100;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: opacity 0.8s ease;
+    }
+
+    #video-container.fade-out {
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    video {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+      background: #000;
+    }
+
+    /* Цветной переходный слой */
+    #transition-layer {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 105;
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity 0.8s ease;
+      background: #fff;
+    }
+
+    /* Кнопка назад */
+    .back-btn {
+      position: absolute;
+      top: 20px;
+      left: 20px;
+      z-index: 120;
+      background: rgba(0, 0, 0, 0.6);
+      backdrop-filter: blur(8px);
+      border: 2px solid rgba(255, 255, 255, 0.4);
+      color: #fff;
+      font-family: 'Advaken Sans Expanded', sans-serif;
+      font-size: 1.2rem;
+      font-weight: 600;
+      padding: 0.6rem 1.4rem;
+      border-radius: 40px;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      letter-spacing: 0.05em;
+    }
+
+    .back-btn:hover {
+      background: rgba(255, 255, 255, 0.2);
+      border-color: #fff;
+      box-shadow: 0 0 20px rgba(255,255,255,0.4);
+    }
+
+    /* Текстовое сообщение */
+    #video-message {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      z-index: 108;
+      text-align: center;
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity 1.2s ease;
+      width: 90%;
+    }
+
+    #video-message.visible {
+      opacity: 1;
+    }
+
+    .message-top {
+      font-family: 'Advaken Sans Expanded', sans-serif;
+      font-size: 1.1rem;
+      color: rgba(255, 255, 255, 0.35);
+      margin-bottom: 0.5rem;
+      letter-spacing: 0.02em;
+    }
+
+    .message-main {
+      font-family: 'Advaken Sans Expanded', sans-serif;
+      font-size: 1.6rem;
+      color: rgba(255, 255, 255, 0.75);
+      line-height: 1.4;
+      letter-spacing: 0.03em;
+    }
+
+    /* Оверлей с кнопками (по центру экрана) */
+    #overlay-buttons {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      display: flex;
+      gap: 2rem;
+      z-index: 110;
+      opacity: 0;
+      transition: opacity 0.6s ease;
+    }
+
+    #overlay-buttons.visible {
+      opacity: 1;
+    }
+
+    .overlay-btn {
+      background: rgba(0, 0, 0, 0.7);
+      backdrop-filter: blur(14px);
+      border: 2px solid rgba(255, 255, 255, 0.55);
+      color: #fff;
+      font-family: 'Advaken Sans Expanded', sans-serif;
+      font-size: 1.5rem;
+      font-weight: 600;
+      padding: 0.9rem 2.2rem;
+      border-radius: 50px;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      letter-spacing: 0.05em;
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+    }
+
+    .overlay-btn .digit-small {
+      font-family: 'Advaken Sans Expanded', sans-serif;
+      font-size: 2rem;
+      font-weight: 700;
+    }
+
+    .overlay-btn.active:hover {
+      background: rgba(255, 255, 255, 0.25);
+      border-color: #fff;
+      box-shadow: 0 0 30px rgba(255,255,255,0.6);
+      transform: scale(1.04);
+    }
+
+    .overlay-btn.inactive {
+      opacity: 0.5;
+      cursor: not-allowed;
+      filter: grayscale(0.7);
+      pointer-events: none;
+    }
+
+    /* Экран со звёздами */
+    #stars-screen {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: #000;
+      z-index: 200;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: opacity 0.5s ease;
+    }
+
+    canvas#stars-canvas {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+    }
+
+    .circle-btn {
+      position: relative;
+      z-index: 210;
+      width: 120px;
+      height: 120px;
+      background: #fff;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      text-decoration: none;
+      color: transparent;
+      box-shadow: 0 0 40px rgba(255,255,255,0.7);
+      transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+      cursor: pointer;
+      animation: fadeInUp 1s ease forwards, pulse 2.5s ease-in-out infinite;
+      opacity: 0;
+      transform: translateY(30px);
+    }
+
+    .circle-btn:hover {
+      transform: scale(1.08) translateY(0);
+      box-shadow: 0 0 70px rgba(255,255,255,0.9);
+    }
+
+    @keyframes fadeInUp {
+      0% { opacity: 0; transform: translateY(30px); }
+      100% { opacity: 1; transform: translateY(0); }
+    }
+
+    @keyframes pulse {
+      0% { box-shadow: 0 0 30px rgba(255,255,255,0.6); }
+      50% { box-shadow: 0 0 70px rgba(255,255,255,1); }
+      100% { box-shadow: 0 0 30px rgba(255,255,255,0.6); }
+    }
+
+    @media (max-width: 650px) {
+      .buttons-row {
+        gap: 1.2rem;
+      }
+      .main-btn {
+        font-size: 1.3rem;
+        padding: 0.9rem 1.8rem;
+      }
+      .main-btn .digit-big {
+        font-size: 2rem;
+      }
+      .overlay-btn {
+        font-size: 1.1rem;
+        padding: 0.7rem 1.4rem;
+      }
+      .overlay-btn .digit-small {
+        font-size: 1.5rem;
+      }
+      .circle-btn {
+        width: 100px;
+        height: 100px;
+      }
+      .message-top {
+        font-size: 0.9rem;
+      }
+      .message-main {
+        font-size: 1.3rem;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div id="app">
+    <!-- ГЛАВНЫЙ ЭКРАН -->
+    <div id="main-screen">
+      <div class="buttons-row">
+        <button class="main-btn" id="btn1"><span class="digit-big">1</span> ▶ Смотреть</button>
+        <button class="main-btn" id="btn2"><span class="digit-big">2</span> ▶ Смотреть</button>
+        <button class="main-btn disabled" id="btn3" disabled><span class="digit-big">3</span> ★ Финал</button>
+      </div>
+    </div>
+
+    <!-- ВИДЕО ПЛЕЕРЫ -->
+    <div id="video-container" style="display: none;">
+      <video id="video-main" preload="auto" playsinline></video>
+      <video id="video-overlay" preload="auto" playsinline style="display: none;"></video>
+      <!-- Цветной переходный слой -->
+      <div id="transition-layer"></div>
+      <!-- Текстовое сообщение -->
+      <div id="video-message">
+        <div class="message-top">это не выебоны, прост типо хз прикольно для кого-то что такое сделал.</div>
+        <div class="message-main">мне было важно сделать это для тебя. надеюсь, тебе понравилось((</div>
+      </div>
+      <button class="back-btn" id="back-btn" style="display: none;">← Назад</button>
+      <div id="overlay-buttons"></div>
+    </div>
+
+    <!-- ФИНАЛЬНЫЙ ЭКРАН СО ЗВЁЗДАМИ -->
+    <div id="stars-screen" style="display: none;">
+      <canvas id="stars-canvas"></canvas>
+      <a class="circle-btn" id="final-link" href="https://vk.ru/kwewqp" target="_blank" rel="noopener noreferrer"></a>
+    </div>
+  </div>
+
+  <script>
+    (function() {
+      // DOM-элементы
+      const mainScreen = document.getElementById('main-screen');
+      const videoContainer = document.getElementById('video-container');
+      const videoMain = document.getElementById('video-main');
+      const videoOverlay = document.getElementById('video-overlay');
+      const transitionLayer = document.getElementById('transition-layer');
+      const videoMessage = document.getElementById('video-message');
+      const backBtn = document.getElementById('back-btn');
+      const overlayButtons = document.getElementById('overlay-buttons');
+      const starsScreen = document.getElementById('stars-screen');
+      const starsCanvas = document.getElementById('stars-canvas');
+      const btn1 = document.getElementById('btn1');
+      const btn2 = document.getElementById('btn2');
+
+      // Состояние
+      const state = {
+        video1Watched: false,
+        video2OverlayActive: false,
+        video2PausedForVideo1: false,
+        video2CurrentTime: 0,
+        transitionInProgress: false,
+        messageVisible: false,
+      };
+
+      // Поэтапное появление кнопок на главном экране
+      function animateMainButtons() {
+        const buttons = [btn1, btn2];
+        buttons.forEach(btn => btn.classList.remove('visible'));
+        void btn1.offsetWidth;
+        buttons.forEach((btn, index) => {
+          setTimeout(() => {
+            btn.classList.add('visible');
+          }, 300 + index * 250);
+        });
+      }
+
+      // Вернуться на главный экран
+      function showMainScreen() {
+        mainScreen.style.display = 'flex';
+        videoContainer.style.display = 'none';
+        videoContainer.classList.remove('fade-out');
+        starsScreen.style.display = 'none';
+        // Сброс видео
+        videoMain.pause();
+        videoMain.src = '';
+        videoOverlay.pause();
+        videoOverlay.src = '';
+        videoOverlay.style.display = 'none';
+        overlayButtons.classList.remove('visible');
+        videoMessage.classList.remove('visible');
+        backBtn.style.display = 'none';
+        transitionLayer.style.opacity = '0';
+        state.video2OverlayActive = false;
+        state.transitionInProgress = false;
+        state.messageVisible = false;
+        if (state.video2TimerInterval) {
+          clearInterval(state.video2TimerInterval);
+          state.video2TimerInterval = null;
+        }
+        animateMainButtons();
+      }
+
+      // Функция перехода с цветным слоем поверх видео
+      function startVideoWithTransition(videoSrc, color, isVideo2 = false) {
+        if (state.transitionInProgress) return;
+        state.transitionInProgress = true;
+
+        mainScreen.style.display = 'none';
+        videoContainer.style.display = 'flex';
+        videoContainer.classList.remove('fade-out');
+        transitionLayer.style.background = color;
+        transitionLayer.style.opacity = '1';
+        videoMain.style.display = 'block';
+        videoMain.src = videoSrc;
+        videoMain.muted = false;
+        videoMain.currentTime = 0;
+
+        overlayButtons.classList.remove('visible');
+        videoMessage.classList.remove('visible');
+        backBtn.style.display = 'none';
+
+        const onVideoPlaying = () => {
+          videoMain.removeEventListener('playing', onVideoPlaying);
+          transitionLayer.style.opacity = '0';
+          const onTransitionEnd = () => {
+            transitionLayer.removeEventListener('transitionend', onTransitionEnd);
+            state.transitionInProgress = false;
+            backBtn.style.display = 'block';
+            if (isVideo2) {
+              videoMain.ontimeupdate = video2TimeUpdate;
+              video2TimeUpdate();
+            }
+          };
+          transitionLayer.addEventListener('transitionend', onTransitionEnd);
+          setTimeout(() => {
+            if (transitionLayer.style.opacity === '0' && state.transitionInProgress) {
+              onTransitionEnd();
+            }
+          }, 850);
+        };
+
+        videoMain.addEventListener('playing', onVideoPlaying);
+        videoMain.play().catch(e => {
+          console.warn('Ошибка воспроизведения:', e);
+          transitionLayer.style.opacity = '0';
+          state.transitionInProgress = false;
+          backBtn.style.display = 'block';
+        });
+      }
+
+      // Запуск video2 со специфической логикой таймера
+      function startVideo2() {
+        startVideoWithTransition('video2.mp4', '#00008B', true);
+        videoMain.onended = () => {
+          state.video2OverlayActive = false;
+          showMainScreen();
+        };
+      }
+
+      // Обновление текста и оверлея в зависимости от оставшегося времени
+      function video2TimeUpdate() {
+        if (!videoMain.duration || videoMain.paused) return;
+        const remaining = videoMain.duration - videoMain.currentTime;
+
+        // Текст появляется на 5 секунд раньше: теперь при <= 27 секунд
+        if (remaining <= 27 && remaining > 20) {
+          if (!state.messageVisible) {
+            videoMessage.classList.add('visible');
+            state.messageVisible = true;
+          }
+        } else {
+          if (state.messageVisible) {
+            videoMessage.classList.remove('visible');
+            state.messageVisible = false;
+          }
+        }
+
+        // Кнопки появляются, когда осталось <=20 секунд
+        if (remaining <= 20 && remaining > 0.5 && !state.video2OverlayActive) {
+          showVideo2Overlay();
+        } else if (remaining > 20 && state.video2OverlayActive) {
+          hideVideo2Overlay();
+        }
+      }
+
+      function showVideo2Overlay() {
+        state.video2OverlayActive = true;
+        overlayButtons.innerHTML = '';
+        backBtn.style.display = 'none';
+
+        if (state.video1Watched) {
+          const btn3Overlay = document.createElement('button');
+          btn3Overlay.className = 'overlay-btn active';
+          btn3Overlay.innerHTML = '<span class="digit-small">3</span> ★ Финал';
+          btn3Overlay.addEventListener('click', onFinalButtonClick);
+          overlayButtons.appendChild(btn3Overlay);
+        } else {
+          const btn1Overlay = document.createElement('button');
+          btn1Overlay.className = 'overlay-btn active';
+          btn1Overlay.innerHTML = '<span class="digit-small">1</span> ▶ Смотреть';
+          btn1Overlay.addEventListener('click', onOverlayBtn1Click);
+
+          const btn3Overlay = document.createElement('button');
+          btn3Overlay.className = 'overlay-btn inactive';
+          btn3Overlay.innerHTML = '<span class="digit-small">3</span> ★ Финал';
+          btn3Overlay.disabled = true;
+
+          overlayButtons.appendChild(btn1Overlay);
+          overlayButtons.appendChild(btn3Overlay);
+        }
+        void overlayButtons.offsetWidth;
+        overlayButtons.classList.add('visible');
+      }
+
+      function hideVideo2Overlay() {
+        state.video2OverlayActive = false;
+        overlayButtons.classList.remove('visible');
+        backBtn.style.display = 'block';
+      }
+
+      function onOverlayBtn1Click() {
+        videoMain.pause();
+        state.video2CurrentTime = videoMain.currentTime;
+        state.video2PausedForVideo1 = true;
+        hideVideo2Overlay();
+        videoMessage.classList.remove('visible');
+
+        videoOverlay.src = 'video1.mp4';
+        videoOverlay.muted = false;
+        videoOverlay.style.display = 'block';
+        videoOverlay.currentTime = 0;
+        videoOverlay.play().catch(e => console.warn(e));
+
+        videoOverlay.onended = () => {
+          state.video1Watched = true;
+          videoOverlay.style.display = 'none';
+          videoOverlay.src = '';
+          videoOverlay.onended = null;
+
+          videoMain.currentTime = state.video2CurrentTime;
+          state.video2PausedForVideo1 = false;
+          videoMain.play();
+          backBtn.style.display = 'block';
+          video2TimeUpdate();
+        };
+      }
+
+      function onFinalButtonClick() {
+        videoContainer.classList.add('fade-out');
+        videoMain.pause();
+        state.video2OverlayActive = false;
+        backBtn.style.display = 'none';
+        videoMessage.classList.remove('visible');
+
+        const transitionHandler = () => {
+          videoContainer.removeEventListener('transitionend', transitionHandler);
+          videoContainer.style.display = 'none';
+          showStarsScreen();
+        };
+        videoContainer.addEventListener('transitionend', transitionHandler);
+        setTimeout(() => {
+          if (videoContainer.style.display !== 'none') {
+            videoContainer.style.display = 'none';
+            showStarsScreen();
+          }
+        }, 800);
+      }
+
+      // Кнопка "назад"
+      backBtn.addEventListener('click', () => {
+        if (videoOverlay.style.display === 'block' && videoOverlay.src) {
+          // Возврат из видео1 внутри видео2
+          videoOverlay.pause();
+          videoOverlay.style.display = 'none';
+          videoOverlay.src = '';
+          videoOverlay.onended = null;
+
+          // Засчитываем просмотр видео1, даже если нажали "назад"
+          state.video1Watched = true;
+
+          videoMain.currentTime = state.video2CurrentTime;
+          state.video2PausedForVideo1 = false;
+          videoMain.play();
+          backBtn.style.display = 'block';
+          video2TimeUpdate();
+        } else {
+          // Возврат из основного видео (video1 или video2)
+          if (videoMain.src && videoMain.src.includes('video1.mp4')) {
+            // Засчитываем просмотр video1 при нажатии "назад"
+            state.video1Watched = true;
+          }
+          showMainScreen();
+        }
+      });
+
+      // Экран со звёздами
+      function showStarsScreen() {
+        starsScreen.style.display = 'flex';
+        initStars();
+      }
+
+      let starsAnimationId = null;
+      const starsArray = [];
+
+      function initStars() {
+        if (starsAnimationId) cancelAnimationFrame(starsAnimationId);
+        const canvas = starsCanvas;
+        const ctx = canvas.getContext('2d');
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+
+        starsArray.length = 0;
+        const starCount = 120;
+        for (let i = 0; i < starCount; i++) {
+          starsArray.push({
+            x: Math.random() * canvas.width,
+            y: Math.random() * canvas.height - canvas.height,
+            size: Math.random() * 6 + 2,
+            speed: Math.random() * 2.5 + 0.8,
+            type: Math.random() < 0.5 ? 'burgundy' : 'gold',
+            phase: Math.random() * Math.PI * 2,
+          });
+        }
+
+        function drawStar(ctx, cx, cy, spikes, outerRadius, innerRadius, color, shadowColor) {
+          const step = Math.PI / spikes;
+          let rot = Math.PI / 2 * 3;
+          ctx.beginPath();
+          ctx.moveTo(cx, cy - outerRadius);
+          for (let i = 0; i < spikes; i++) {
+            ctx.lineTo(cx + Math.cos(rot) * outerRadius, cy + Math.sin(rot) * outerRadius);
+            rot += step;
+            ctx.lineTo(cx + Math.cos(rot) * innerRadius, cy + Math.sin(rot) * innerRadius);
+            rot += step;
+          }
+          ctx.closePath();
+          ctx.fillStyle = color;
+          ctx.shadowBlur = 10;
+          ctx.shadowColor = shadowColor;
+          ctx.fill();
+        }
+
+        let startTime = Date.now();
+        function draw() {
+          const now = Date.now();
+          const elapsed = (now - startTime) / 1000;
+          ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+          for (let s of starsArray) {
+            let color, shadow;
+            if (s.type === 'burgundy') {
+              color = '#800020';
+              shadow = '#800020';
+            } else {
+              const mix = Math.sin(elapsed * 3 + s.phase) * 0.3 + 0.7;
+              const r = Math.floor(255 * mix);
+              const g = Math.floor(215 * mix);
+              const b = 0;
+              color = `rgb(${r},${g},${b})`;
+              shadow = color;
+            }
+            drawStar(ctx, s.x, s.y, 4, s.size, s.size * 0.4, color, shadow);
+            s.y += s.speed;
+            if (s.y - s.size > canvas.height) {
+              s.y = -s.size * 2;
+              s.x = Math.random() * canvas.width;
+            }
+          }
+          starsAnimationId = requestAnimationFrame(draw);
+        }
+        draw();
+
+        window.addEventListener('resize', () => {
+          canvas.width = window.innerWidth;
+          canvas.height = window.innerHeight;
+        });
+      }
+
+      // Обработчики главных кнопок
+      btn1.addEventListener('click', () => {
+        if (state.transitionInProgress) return;
+        startVideoWithTransition('video1.mp4', '#ffffff', false);
+        videoMain.onended = () => {
+          state.video1Watched = true;
+          showMainScreen();
+        };
+      });
+
+      btn2.addEventListener('click', () => {
+        if (state.transitionInProgress) return;
+        startVideo2();
+      });
+
+      // Инициализация
+      showMainScreen();
+      animateMainButtons();
+    })();
+  </script>
+</body>
+</html>
