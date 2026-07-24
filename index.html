@@ -394,7 +394,7 @@
     <!-- ФИНАЛЬНЫЙ ЭКРАН СО ЗВЁЗДАМИ -->
     <div id="stars-screen" style="display: none;">
       <canvas id="stars-canvas"></canvas>
-      <a class="circle-btn" id="final-link" href="https://vk.ru/kwewqp" target="_blank" rel="noopener noreferrer"></a>
+      <a class="circle-btn" id="final-link" href="https://vk.ru/club240459539" target="_blank" rel="noopener noreferrer"></a>
     </div>
   </div>
 
@@ -524,7 +524,7 @@
         if (!videoMain.duration || videoMain.paused) return;
         const remaining = videoMain.duration - videoMain.currentTime;
 
-        // Текст появляется на 5 секунд раньше: теперь при <= 27 секунд
+        // Текст появляется, когда осталось <= 27 секунд
         if (remaining <= 27 && remaining > 20) {
           if (!state.messageVisible) {
             videoMessage.classList.add('visible');
